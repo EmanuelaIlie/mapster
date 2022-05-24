@@ -1,4 +1,4 @@
-﻿using System.IO.MemoryMappedFiles;
+using System.IO.MemoryMappedFiles;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
@@ -24,7 +24,7 @@ public readonly ref struct MapFeatureData
     public GeometryType Type { get; init; }
     public ReadOnlySpan<char> Label { get; init; }
     public ReadOnlySpan<Coordinate> Coordinates { get; init; }
-    public Dictionary<string, string> Properties { get; init; }
+    public Dictionary<TerrainTypes, string> Properties { get; init; } // Enum in loc de String
 }
 
 /// <summary>
@@ -181,11 +181,19 @@ public unsafe class DataFile : IDisposable
 
                 if (isFeatureInBBox)
                 {
-                    var properties = new Dictionary<string, string>(feature->PropertyCount);
+                    // Enum in loc de String
+                    var properties = new Dictionary<TerrainTypes, string>(feature->PropertyCount);
                     for (var p = 0; p < feature->PropertyCount; ++p)
                     {
                         GetProperty(header.Tile.Value.StringsOffsetInBytes, header.Tile.Value.CharactersOffsetInBytes, p * 2 + feature->PropertiesOffset, out var key, out var value);
-                        properties.Add(key.ToString(), value.ToString());
+
+                        // Verific daca exista cheia in Enum
+                        if(Enum.IsDefined(typeof(TerrainTypes), key.ToString()))
+                        {
+                            // Adaug cheile folosind Enum
+                            TerrainTypes keys_to_add = (TerrainTypes)Enum.Parse(typeof(TerrainTypes), key.ToString());
+                            properties.Add(keys_to_add, value.ToString());
+                        }
                     }
 
                     if (!action(new MapFeatureData
